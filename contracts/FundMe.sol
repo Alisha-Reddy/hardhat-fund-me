@@ -1,4 +1,4 @@
-// SPDX-License-Modifier:MIT
+// SPDX-License-Identifier: MIT
 
 // 1. Pragma
 pragma solidity ^0.8.0;
@@ -18,15 +18,15 @@ contract FundMe {
     using PriceConverter for uint256;
 
     // State variable
-    AggregatorV3Interface public priceFeed;
+    AggregatorV3Interface public s_priceFeed;
     uint256 public constant MINIMUM_USD = 50 * 1e18;
-    address[] public funders;
-    mapping(address => uint256) public addressToAmountFunded;
-    address public immutable i_owner;
+    address[] private s_funders;
+    mapping(address => uint256) private s_addressToAmountFunded;
+    address private immutable i_owner;
 
     constructor(address priceFeedAddress) {
         i_owner = msg.sender;
-        priceFeed = AggregatorV3Interface(priceFeedAddress);
+        s_priceFeed = AggregatorV3Interface(priceFeedAddress);
     }
 
     function fund() public payable {
@@ -37,24 +37,24 @@ contract FundMe {
         // The second part in the above line is revert
 
         require(
-            msg.value.getConversionRate(priceFeed) > MINIMUM_USD,
+            msg.value.getConversionRate(s_priceFeed) > MINIMUM_USD,
             "Didn't send enough!"
         );
-        funders.push(msg.sender); // msg.sender is the address of the sender that's calling the contract
-        addressToAmountFunded[msg.sender] += msg.value;
+        s_funders.push(msg.sender); // msg.sender is the address of the sender that's calling the contract
+        s_addressToAmountFunded[msg.sender] += msg.value;
     }
 
-    function withdraw() public onlyOwner {
+    function withdraw() public payable onlyOwner {
         for (
             uint256 funderIndex = 0;
-            funderIndex < funders.length;
+            funderIndex < s_funders.length;
             funderIndex++
         ) {
-            address funder = funders[funderIndex];
-            addressToAmountFunded[funder] = 0;
+            address funder = s_funders[funderIndex];
+            s_addressToAmountFunded[funder] = 0;
         }
         // We need to rest the array
-        funders = new address[](0);
+        s_funders = new address[](0);
 
         // And also withdraw the amount
 
@@ -66,6 +66,21 @@ contract FundMe {
         // require(sendSuccess, "Send Failed");
 
         // call
+        (bool success, ) = i_owner.call{value: address(this).balance}("");
+        require(success);
+    }
+    function cheaperWithdraw() public payable onlyOwner{
+        address[] memory funders = s_funders; //Here memory is used so the array will be stored in storage
+        // mappings can't be in memory, sorry!
+        for (
+            uint256 funderIndex = 0;
+            funderIndex < s_funders.length;
+            funderIndex++
+        ) {
+            address funder = s_funders[funderIndex];
+            s_addressToAmountFunded[funder] = 0;
+        }
+        s_funders = new address[](0);
         (bool success, ) = i_owner.call{value: address(this).balance}("");
         require(success);
     }
@@ -85,4 +100,21 @@ contract FundMe {
     fallback() external payable {
         fund();
     }
+
+    function getOwner( ) public view returns(address){
+        return i_owner;
+    }
+
+    function getFunder(uint256 index) public view returns (address){
+        return s_funders[index];
+    }
+
+    function getAddressToAmountFunded(address funder) public view returns (uint256) {
+        return s_addressToAmountFunded[funder];
+    }
+
+    function getPriceFeed() public view returns (AggregatorV3Interface) {
+        return s_priceFeed;
+    }
+
 }

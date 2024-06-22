@@ -20,12 +20,12 @@ library PriceConverter {
         return uint256(price * 1e10); //Typecasted
     }
 
-    function getVersion() internal view {
-        AggregatorV3Interface priceFeed = AggregatorV3Interface(
-            0x694AA1769357215DE4FAC081bf1f309aDC325306
-        );
-        priceFeed.version(); //version() is a function in the imported contract
-    }
+    // function getVersion() internal view {
+    //     AggregatorV3Interface priceFeed = AggregatorV3Interface(
+    //         0x694AA1769357215DE4FAC081bf1f309aDC325306
+    //     );
+    //     priceFeed.version(); //version() is a function in the imported contract
+    // }
 
     function getConversionRate(uint ethAmount, AggregatorV3Interface priceFeed) internal view returns (uint256) {
         uint256 ethPrice = getPrice(priceFeed);

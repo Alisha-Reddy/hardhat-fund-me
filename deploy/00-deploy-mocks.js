@@ -5,6 +5,7 @@ const {developmentChains, DECIMALS, INITIAL_ANSWER} = require("../helper-hardhat
 module.exports = async ({getNamedAccounts, deployments}) => {
     const { deploy, log } = deployments;
     const { deployer } = await getNamedAccounts();
+    
 
     if (developmentChains.includes(network.name)) {
         log("Local network detected! Deploying mocks...")
