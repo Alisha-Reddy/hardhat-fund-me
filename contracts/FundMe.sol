@@ -1,44 +1,55 @@
-// Goals: -Get funds from users
-//        -Withdraw funds
-//        -Set a minimum funding value in USD
+// SPDX-License-Modifier:MIT
 
-// SPDX-License-Identifier:MIT
+// 1. Pragma
 pragma solidity ^0.8.0;
-
+// 2. Imports
+import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 import "./PriceConverter.sol";
 
-error NotOwner();
+// 3. Interfaces, Libraries, Contracts
 
-contract FundMe{
+/**@title A contract for crowd funding
+ *@notice This contract is to demo a sample funding contract
+ */
 
-    uint256 public constant MINIMUM_USD = 50 * 1e18;
+contract FundMe {
 
+    // Type declaration
     using PriceConverter for uint256;
+
+    // State variable
     AggregatorV3Interface public priceFeed;
-
-    address [] public funders;
+    uint256 public constant MINIMUM_USD = 50 * 1e18;
+    address[] public funders;
     mapping(address => uint256) public addressToAmountFunded;
-
     address public immutable i_owner;
-    constructor(address priceFeedAddress){
+
+    constructor(address priceFeedAddress) {
         i_owner = msg.sender;
         priceFeed = AggregatorV3Interface(priceFeedAddress);
     }
 
-    function fund() public payable{
+    function fund() public payable {
         // We want to set a minimum fund amount in USD
-        // payable sets the function as payable and marks it in red color 
+        // payable sets the function as payable and marks it in red color
         // require(msg.value > 1e18, "Didn't send enough!"); //This is for the person who require msg value more than 1e18
         // 1e18 == 1 * 10 ** 18 == 10 to the power 18 = 1000000000000000000 wei = 1 Eth
         // The second part in the above line is revert
-        
-        require(msg.value.getConversionRate(priceFeed) > MINIMUM_USD, "Didn't send enough!");
+
+        require(
+            msg.value.getConversionRate(priceFeed) > MINIMUM_USD,
+            "Didn't send enough!"
+        );
         funders.push(msg.sender); // msg.sender is the address of the sender that's calling the contract
         addressToAmountFunded[msg.sender] += msg.value;
     }
 
-    function withdraw() public onlyOwner{
-        for(uint256 funderIndex=0; funderIndex<funders.length; funderIndex++ ){
+    function withdraw() public onlyOwner {
+        for (
+            uint256 funderIndex = 0;
+            funderIndex < funders.length;
+            funderIndex++
+        ) {
             address funder = funders[funderIndex];
             addressToAmountFunded[funder] = 0;
         }
@@ -53,17 +64,17 @@ contract FundMe{
         // // send
         // bool sendSuccess = payable(msg.sender).send(address(this).balance);
         // require(sendSuccess, "Send Failed");
-        
-        
+
         // call
         (bool success, ) = i_owner.call{value: address(this).balance}("");
         require(success);
-        
     }
 
-    modifier onlyOwner{
+    modifier onlyOwner() {
         // require(msg.sender == i_owner,"Sender is not owner");
-        if(msg.sender != i_owner) {revert NotOwner(); } 
+        if (msg.sender != i_owner) {
+            revert("U r not the owner!!!");
+        }
         _;
     }
 
@@ -74,5 +85,4 @@ contract FundMe{
     fallback() external payable {
         fund();
     }
-
 }
